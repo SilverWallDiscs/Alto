@@ -163,7 +163,7 @@ function TrackLabel({ track, dispatch }) {
           active={track.locked}
           activeColor="var(--accent)"
           onClick={() => dispatch(ACTIONS.SET_TRACK_LOCK, { trackId: track.id, value: !track.locked })}
-        >🔒</TrackBtn>
+        >L</TrackBtn>
       </div>
     </div>
   );
@@ -265,8 +265,8 @@ function Clip({ clip, zoom, trackHeight, trackColor, selected, locked, dispatch 
       }}
     >
       <div style={{ padding: '2px 6px', display: 'flex', alignItems: 'center', gap: 4, height: '100%' }}>
-        <span style={{ fontSize: 10, color: base, flexShrink: 0 }}>
-          {clip.type === 'video' ? '🎬' : clip.type === 'audio' ? '🎵' : clip.type === 'image' ? '🖼' : 'T'}
+        <span style={{ fontSize: 9, color: base, flexShrink: 0, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.5 }}>
+          {clip.type === 'video' ? 'V' : clip.type === 'audio' ? 'A' : clip.type === 'image' ? 'I' : 'T'}
         </span>
         {width > 50 && (
           <span style={{ fontSize: 10, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>

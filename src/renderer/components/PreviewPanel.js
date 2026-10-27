@@ -1,136 +1,269 @@
-import React, { useRef, useEffect, useState } from 'react';
+import React, { useRef, useEffect, useState, useCallback } from 'react';
 import { useStore, useDispatch, ACTIONS } from '../store/store';
+
+// SVG icons — no emojis
+const Icon = {
+  Play: () => (
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+      <path d="M3 2.5l10 5.5-10 5.5V2.5z"/>
+    </svg>
+  ),
+  Pause: () => (
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+      <rect x="3" y="2" width="4" height="12" rx="1"/>
+      <rect x="9" y="2" width="4" height="12" rx="1"/>
+    </svg>
+  ),
+  SkipBack: () => (
+    <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor">
+      <rect x="2" y="2" width="2" height="12" rx="1"/>
+      <path d="M13 2.5L5 8l8 5.5V2.5z"/>
+    </svg>
+  ),
+  SkipFwd: () => (
+    <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor">
+      <rect x="12" y="2" width="2" height="12" rx="1"/>
+      <path d="M3 2.5L11 8 3 13.5V2.5z"/>
+    </svg>
+  ),
+  StepBack: () => (
+    <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor">
+      <path d="M11 2.5L3 8l8 5.5V2.5z"/>
+      <rect x="2" y="3" width="1.5" height="10" rx="0.5"/>
+    </svg>
+  ),
+  StepFwd: () => (
+    <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor">
+      <path d="M5 2.5L13 8 5 13.5V2.5z"/>
+      <rect x="12.5" y="3" width="1.5" height="10" rx="0.5"/>
+    </svg>
+  ),
+  Volume: () => (
+    <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor">
+      <path d="M2 6h3l5-4v12l-5-4H2V6zm11.3 1.7a4 4 0 010 4.6"/>
+    </svg>
+  ),
+};
+
+function formatTC(s) {
+  const m = Math.floor(s / 60);
+  const sec = Math.floor(s % 60);
+  const fr = Math.floor((s % 1) * 30);
+  return `${String(m).padStart(2,'0')}:${String(sec).padStart(2,'0')}:${String(fr).padStart(2,'0')}`;
+}
 
 export default function PreviewPanel() {
   const { state } = useStore();
   const dispatch = useDispatch();
-  const rafRef = useRef();
-  const lastTickRef = useRef();
+  const videoRef = useRef(null);
+  const rafRef = useRef(null);
+  const lastTickRef = useRef(null);
+  const isSyncingRef = useRef(false);
   const [volume, setVolume] = useState(1);
-  const [showInfo, setShowInfo] = useState(false);
 
+  // Find the active video clip at the current playhead
+  const activeVideoClip = state.tracks
+    .filter(t => t.type === 'video' || t.type === 'image')
+    .flatMap(t => t.clips)
+    .find(c => c.type === 'video' && state.playhead >= c.startTime && state.playhead < c.startTime + c.duration);
+
+  const videoSrc = activeVideoClip
+    ? (activeVideoClip.path.startsWith('file://') ? activeVideoClip.path : `file:///${activeVideoClip.path.replace(/\\/g, '/')}`)
+    : null;
+
+  // Sync video element src
+  useEffect(() => {
+    const v = videoRef.current;
+    if (!v) return;
+    if (!videoSrc) {
+      v.src = '';
+      return;
+    }
+    if (v.currentSrc !== videoSrc) {
+      v.src = videoSrc;
+      v.load();
+    }
+  }, [videoSrc]);
+
+  // Sync video element time when store playhead changes (not during playback)
+  useEffect(() => {
+    const v = videoRef.current;
+    if (!v || !videoSrc || isSyncingRef.current) return;
+    const clipTime = state.playhead - (activeVideoClip?.startTime || 0) + (activeVideoClip?.trimIn || 0);
+    const target = Math.max(0, clipTime);
+    if (Math.abs(v.currentTime - target) > 0.1) {
+      v.currentTime = target;
+    }
+  }, [state.playhead, videoSrc]);
+
+  // Volume
+  useEffect(() => {
+    if (videoRef.current) videoRef.current.volume = volume;
+  }, [volume]);
+
+  // Playback loop
   useEffect(() => {
     if (state.isPlaying) {
+      const v = videoRef.current;
+      if (v && videoSrc && v.paused) v.play().catch(() => {});
+
       lastTickRef.current = performance.now();
       const tick = (now) => {
         const dt = (now - lastTickRef.current) / 1000;
         lastTickRef.current = now;
-        const next = state.playhead + dt;
-        if (next >= state.duration) {
-          dispatch(ACTIONS.SET_PLAYHEAD, 0);
-          dispatch(ACTIONS.SET_PLAYING, false);
+
+        // If video is playing, read its actual time to stay in sync
+        if (v && videoSrc && !v.paused && activeVideoClip) {
+          isSyncingRef.current = true;
+          const realTime = activeVideoClip.startTime + v.currentTime - (activeVideoClip.trimIn || 0);
+          dispatch(ACTIONS.SET_PLAYHEAD, Math.min(realTime, state.duration));
+          isSyncingRef.current = false;
         } else {
-          dispatch(ACTIONS.SET_PLAYHEAD, next);
+          // No video — advance timeline clock
+          const next = state.playhead + dt;
+          if (next >= state.duration) {
+            dispatch(ACTIONS.SET_PLAYHEAD, 0);
+            dispatch(ACTIONS.SET_PLAYING, false);
+          } else {
+            dispatch(ACTIONS.SET_PLAYHEAD, next);
+          }
         }
+
         rafRef.current = requestAnimationFrame(tick);
       };
       rafRef.current = requestAnimationFrame(tick);
     } else {
       cancelAnimationFrame(rafRef.current);
+      const v = videoRef.current;
+      if (v && !v.paused) v.pause();
     }
     return () => cancelAnimationFrame(rafRef.current);
   }, [state.isPlaying]);
 
-  const formatTime = (s) => {
-    const m = Math.floor(s / 60);
-    const sec = Math.floor(s % 60);
-    const frames = Math.floor((s % 1) * 30);
-    return `${String(m).padStart(2,'0')}:${String(sec).padStart(2,'0')}:${String(frames).padStart(2,'0')}`;
-  };
+  const togglePlay = useCallback(() => dispatch(ACTIONS.SET_PLAYING, !state.isPlaying), [state.isPlaying]);
+  const goToStart = useCallback(() => { dispatch(ACTIONS.SET_PLAYING, false); dispatch(ACTIONS.SET_PLAYHEAD, 0); }, []);
+  const goToEnd = useCallback(() => { dispatch(ACTIONS.SET_PLAYING, false); dispatch(ACTIONS.SET_PLAYHEAD, state.duration); }, [state.duration]);
+  const stepBack = useCallback(() => dispatch(ACTIONS.SET_PLAYHEAD, Math.max(0, state.playhead - 1/30)), [state.playhead]);
+  const stepFwd = useCallback(() => dispatch(ACTIONS.SET_PLAYHEAD, Math.min(state.duration, state.playhead + 1/30)), [state.playhead, state.duration]);
 
-  const togglePlay = () => dispatch(ACTIONS.SET_PLAYING, !state.isPlaying);
-  const goToStart = () => { dispatch(ACTIONS.SET_PLAYING, false); dispatch(ACTIONS.SET_PLAYHEAD, 0); };
-  const goToEnd = () => { dispatch(ACTIONS.SET_PLAYING, false); dispatch(ACTIONS.SET_PLAYHEAD, state.duration); };
-  const stepBack = () => dispatch(ACTIONS.SET_PLAYHEAD, Math.max(0, state.playhead - 1/30));
-  const stepForward = () => dispatch(ACTIONS.SET_PLAYHEAD, Math.min(state.duration, state.playhead + 1/30));
+  const progress = state.duration > 0 ? (state.playhead / state.duration) : 0;
 
-  const progress = state.duration > 0 ? state.playhead / state.duration : 0;
-  const activeClips = state.tracks.flatMap(t =>
-    t.clips.filter(c => state.playhead >= c.startTime && state.playhead < c.startTime + c.duration)
-  );
+  const handleScrub = useCallback((e) => {
+    const r = e.currentTarget.getBoundingClientRect();
+    const t = Math.max(0, Math.min(1, (e.clientX - r.left) / r.width)) * state.duration;
+    dispatch(ACTIONS.SET_PLAYING, false);
+    dispatch(ACTIONS.SET_PLAYHEAD, t);
+  }, [state.duration]);
 
   return (
-    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', background: 'var(--bg-base)', minHeight: 0 }}>
-      <div style={{ flex: 1, position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: 0, padding: 8 }}>
-        <PreviewCanvas activeClips={activeClips} playhead={state.playhead} />
-        {showInfo && (
-          <div style={{ position: 'absolute', top: 12, left: 12, background: 'rgba(0,0,0,0.75)', padding: '6px 10px', borderRadius: 'var(--radius-sm)', fontSize: 11, fontFamily: 'var(--font-mono)', color: '#0f0', lineHeight: 1.8 }}>
-            <div>Time: {formatTime(state.playhead)}</div>
-            <div>Active: {activeClips.length} clip(s)</div>
-            <div>Duration: {formatTime(state.duration)}</div>
-            <div>Zoom: {state.zoom}px/s</div>
+    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', background: '#111115', minHeight: 0 }}>
+      {/* Viewer */}
+      <div style={{ flex: 1, position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: 0, background: '#000', overflow: 'hidden' }}>
+        {videoSrc ? (
+          <video
+            ref={videoRef}
+            style={{ maxWidth: '100%', maxHeight: '100%', aspectRatio: '16/9', display: 'block' }}
+            preload="auto"
+            onEnded={() => { dispatch(ACTIONS.SET_PLAYING, false); dispatch(ACTIONS.SET_PLAYHEAD, 0); }}
+          />
+        ) : (
+          <div ref={videoRef} style={{ display: 'none' }} />
+        )}
+
+        {/* Empty state */}
+        {!videoSrc && (
+          <div style={{ textAlign: 'center', color: 'rgba(255,255,255,0.2)', userSelect: 'none' }}>
+            <div style={{ fontSize: 11, letterSpacing: 3, textTransform: 'uppercase', marginBottom: 8 }}>No clip at playhead</div>
+            <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.12)' }}>Drag media onto the timeline to begin</div>
           </div>
         )}
-        <button onClick={() => setShowInfo(v => !v)} style={{ position: 'absolute', top: 12, right: 12, background: 'rgba(0,0,0,0.5)', border: '1px solid var(--border)', color: showInfo ? 'var(--accent-bright)' : 'var(--text-muted)', borderRadius: 'var(--radius-sm)', padding: '2px 7px', cursor: 'pointer', fontSize: 11 }}>i</button>
+
+        {/* Timecode overlay */}
+        <div style={{ position: 'absolute', bottom: 10, right: 12, fontFamily: 'var(--font-mono)', fontSize: 11, color: 'rgba(255,255,255,0.45)', letterSpacing: 1, pointerEvents: 'none' }}>
+          {formatTC(state.playhead)}
+        </div>
       </div>
 
-      {/* Scrubber */}
-      <div style={{ padding: '0 16px 4px' }}>
+      {/* Scrub bar */}
+      <div style={{ padding: '6px 12px 2px' }}>
         <div
-          style={{ height: 6, background: 'var(--bg-elevated)', borderRadius: 3, cursor: 'pointer', position: 'relative' }}
-          onClick={e => {
-            const r = e.currentTarget.getBoundingClientRect();
-            dispatch(ACTIONS.SET_PLAYHEAD, ((e.clientX - r.left) / r.width) * state.duration);
+          onMouseDown={handleScrub}
+          style={{ height: 4, background: 'rgba(255,255,255,0.08)', borderRadius: 2, cursor: 'pointer', position: 'relative', overflow: 'visible' }}
+        >
+          <div style={{ height: '100%', width: `${progress * 100}%`, background: 'var(--accent)', borderRadius: 2, pointerEvents: 'none' }} />
+          <div style={{
+            position: 'absolute', top: '50%', left: `${progress * 100}%`,
+            transform: 'translate(-50%, -50%)',
+            width: 10, height: 10, borderRadius: '50%',
+            background: '#fff', boxShadow: '0 0 6px rgba(124,92,252,0.8)',
+            pointerEvents: 'none'
+          }} />
+        </div>
+      </div>
+
+      {/* Transport controls */}
+      <div style={{ display: 'flex', alignItems: 'center', padding: '4px 10px 8px', gap: 2 }}>
+        <CtrlBtn title="Go to start (Home)" onClick={goToStart}><Icon.SkipBack /></CtrlBtn>
+        <CtrlBtn title="Step back one frame" onClick={stepBack}><Icon.StepBack /></CtrlBtn>
+
+        <button
+          onClick={togglePlay}
+          title={state.isPlaying ? 'Pause (Space)' : 'Play (Space)'}
+          style={{
+            width: 36, height: 36, borderRadius: '50%',
+            background: state.isPlaying ? 'rgba(124,92,252,0.15)' : 'var(--accent)',
+            border: state.isPlaying ? '1.5px solid var(--accent)' : 'none',
+            color: '#fff', cursor: 'pointer',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            transition: 'all 0.12s', margin: '0 2px',
           }}
         >
-          <div style={{ height: '100%', width: (progress*100)+'%', background: 'linear-gradient(90deg,var(--accent-dim),var(--accent-bright))', borderRadius: 3 }} />
-          <div style={{ position: 'absolute', top: '50%', left: (progress*100)+'%', transform: 'translate(-50%,-50%)', width: 12, height: 12, borderRadius: '50%', background: '#fff', boxShadow: '0 0 8px var(--accent-glow)', pointerEvents: 'none' }} />
-        </div>
-      </div>
-
-      {/* Controls */}
-      <div style={{ display: 'flex', alignItems: 'center', padding: '4px 16px 12px', gap: 6 }}>
-        <CtrlBtn title="Start (Home)" onClick={goToStart}>⏮</CtrlBtn>
-        <CtrlBtn title="Step back" onClick={stepBack}>⏪</CtrlBtn>
-        <button onClick={togglePlay} title={state.isPlaying ? 'Pause (Space)' : 'Play (Space)'} style={{ width: 40, height: 40, borderRadius: '50%', background: 'var(--accent)', border: 'none', color: '#fff', fontSize: 16, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: state.isPlaying ? 'var(--shadow-accent)' : 'none', transition: 'all 0.15s' }}>
-          {state.isPlaying ? '⏸' : '▶'}
+          {state.isPlaying ? <Icon.Pause /> : <Icon.Play />}
         </button>
-        <CtrlBtn title="Step forward" onClick={stepForward}>⏩</CtrlBtn>
-        <CtrlBtn title="End" onClick={goToEnd}>⏭</CtrlBtn>
+
+        <CtrlBtn title="Step forward one frame" onClick={stepFwd}><Icon.StepFwd /></CtrlBtn>
+        <CtrlBtn title="Go to end" onClick={goToEnd}><Icon.SkipFwd /></CtrlBtn>
+
         <div style={{ flex: 1 }} />
-        <div style={{ fontFamily: 'var(--font-mono)', fontSize: 13 }}>
-          <span style={{ color: 'var(--accent-bright)' }}>{formatTime(state.playhead)}</span>
-          <span style={{ color: 'var(--text-muted)' }}> / {formatTime(state.duration)}</span>
+
+        {/* Timecode */}
+        <div style={{ fontFamily: 'var(--font-mono)', fontSize: 12, display: 'flex', gap: 4, alignItems: 'center' }}>
+          <span style={{ color: 'var(--text-primary)', letterSpacing: 1 }}>{formatTC(state.playhead)}</span>
+          <span style={{ color: 'var(--text-muted)' }}>/</span>
+          <span style={{ color: 'var(--text-muted)', letterSpacing: 1 }}>{formatTC(state.duration)}</span>
         </div>
+
         <div style={{ flex: 1 }} />
-        <span style={{ fontSize: 14 }}>🔊</span>
-        <input type="range" min={0} max={1} step={0.01} value={volume} onChange={e => setVolume(+e.target.value)} style={{ width: 70 }} />
+
+        {/* Volume */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6, color: 'var(--text-muted)' }}>
+          <Icon.Volume />
+          <input
+            type="range" min={0} max={1} step={0.01} value={volume}
+            onChange={e => setVolume(+e.target.value)}
+            style={{ width: 64 }}
+          />
+        </div>
       </div>
     </div>
   );
 }
 
 function CtrlBtn({ title, onClick, children }) {
-  return <button title={title} onClick={onClick} className="btn-icon" style={{ fontSize: 18, padding: 6 }}>{children}</button>;
-}
-
-function PreviewCanvas({ activeClips, playhead }) {
-  const canvasRef = useRef();
-  useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const ctx = canvas.getContext('2d');
-    const { width, height } = canvas;
-    ctx.fillStyle = '#000'; ctx.fillRect(0,0,width,height);
-    if (activeClips.length === 0) {
-      const g = ctx.createLinearGradient(0,0,0,height);
-      g.addColorStop(0,'#0f0f20'); g.addColorStop(1,'#1a0a2e');
-      ctx.fillStyle = g; ctx.fillRect(0,0,width,height);
-      ctx.fillStyle = 'rgba(124,92,252,0.15)'; ctx.font = 'bold 22px sans-serif'; ctx.textAlign = 'center';
-      ctx.fillText('Alto', width/2, height/2 - 20);
-      ctx.fillStyle = 'rgba(255,255,255,0.25)'; ctx.font = '13px sans-serif';
-      ctx.fillText('Drag media to the timeline to begin', width/2, height/2 + 10);
-      return;
-    }
-    activeClips.filter(c => c.type !== 'audio').forEach((clip, i) => {
-      const hue = (i * 80 + 200) % 360;
-      const g = ctx.createRadialGradient(width/2, height/2, 0, width/2, height/2, width/2);
-      g.addColorStop(0, `hsla(${hue},60%,25%,0.9)`);
-      g.addColorStop(1, `hsla(${hue},40%,10%,1)`);
-      ctx.fillStyle = g; ctx.fillRect(0,0,width,height);
-      ctx.fillStyle = `hsla(${hue},70%,70%,0.8)`; ctx.font = 'bold 15px sans-serif'; ctx.textAlign = 'center';
-      ctx.fillText(clip.name || 'Video', width/2, height/2);
-    });
-  }, [activeClips, playhead]);
-  return <canvas ref={canvasRef} width={854} height={480} style={{ maxWidth:'100%', maxHeight:'100%', aspectRatio:'16/9', background:'#000', borderRadius:'var(--radius)', boxShadow:'0 0 40px rgba(0,0,0,0.8)' }} />;
+  return (
+    <button
+      title={title}
+      onClick={onClick}
+      style={{
+        width: 28, height: 28, background: 'transparent', border: 'none',
+        color: 'var(--text-secondary)', borderRadius: 4, cursor: 'pointer',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        transition: 'all 0.12s',
+      }}
+      onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.07)'; e.currentTarget.style.color = '#fff'; }}
+      onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--text-secondary)'; }}
+    >
+      {children}
+    </button>
+  );
 }

@@ -38,7 +38,7 @@ export default function MediaPanel({ onImport }) {
     e.dataTransfer.setData('application/alto-media', JSON.stringify(media));
   };
 
-  const typeIcon = (type) => type === 'video' ? '🎬' : type === 'audio' ? '🎵' : '🖼';
+  const typeIcon = (type) => type === 'video' ? 'V' : type === 'audio' ? 'A' : 'I';
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
@@ -106,7 +106,7 @@ export default function MediaPanel({ onImport }) {
               marginTop: 8,
             }}
           >
-            <span style={{ fontSize: 28 }}>📂</span>
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.2)" strokeWidth="1.5"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
             <span style={{ fontSize: 12, textAlign: 'center' }}>Drop media here<br/>or click to import</span>
           </div>
         ) : view === 'grid' ? (
@@ -155,7 +155,9 @@ function MediaCard({ media, onRemove, onDragStart }) {
       }}
     >
       <div style={{ height: 56, background: color + '22', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-        <span style={{ fontSize: 24 }}>{media.type === 'video' ? '🎬' : media.type === 'audio' ? '🎵' : '🖼'}</span>
+        <span style={{ fontSize: 11, color, fontWeight: 700, letterSpacing: 1 }}>
+          {media.type === 'video' ? 'VID' : media.type === 'audio' ? 'AUD' : 'IMG'}
+        </span>
       </div>
       <div style={{ padding: '4px 6px', fontSize: 10, color: 'var(--text-secondary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
         {media.name}

@@ -55,7 +55,11 @@ function ClipInspector({ clip, dispatch, state }) {
       {/* Clip header */}
       <div style={{ background: 'var(--bg-elevated)', borderRadius: 'var(--radius)', padding: 12, marginBottom: 10, border: '1px solid var(--border)' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
-          <span style={{ fontSize: 20 }}>{clip.type === 'video' ? '🎬' : clip.type === 'audio' ? '🎵' : '🖼'}</span>
+          <div style={{ width: 32, height: 32, borderRadius: 6, background: clip.type === 'video' ? 'rgba(124,92,252,0.2)' : clip.type === 'audio' ? 'rgba(34,211,160,0.2)' : 'rgba(245,158,11,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <span style={{ fontSize: 10, fontWeight: 800, color: clip.type === 'video' ? 'var(--accent-bright)' : clip.type === 'audio' ? 'var(--success)' : 'var(--warning)', letterSpacing: 0.5 }}>
+              {clip.type === 'video' ? 'VID' : clip.type === 'audio' ? 'AUD' : 'IMG'}
+            </span>
+          </div>
           <div>
             <div style={{ fontWeight: 600, fontSize: 13 }}>{clip.name}</div>
             <div style={{ fontSize: 10, color: 'var(--text-muted)', textTransform: 'capitalize' }}>{clip.type} • {track?.name}</div>
@@ -92,8 +96,8 @@ function ClipProperties({ clip, dispatch }) {
       </PropRow>
       <PropRow label="Path"><span style={{ fontSize: 10, color: 'var(--text-muted)', wordBreak: 'break-all' }}>{clip.path || '—'}</span></PropRow>
       <div style={{ marginTop: 10, display: 'flex', gap: 6 }}>
-        <button className="btn btn-ghost" style={{ flex: 1, justifyContent: 'center', fontSize: 11 }} onClick={() => dispatch(ACTIONS.SPLIT_CLIP, { clipId: clip.id, splitTime: clip.startTime + clip.duration / 2 })}>✂ Split</button>
-        <button className="btn btn-danger" style={{ flex: 1, justifyContent: 'center', fontSize: 11 }} onClick={() => dispatch(ACTIONS.REMOVE_CLIP, [clip.id])}>🗑 Delete</button>
+        <button className="btn btn-ghost" style={{ flex: 1, justifyContent: 'center', fontSize: 11 }} onClick={() => dispatch(ACTIONS.SPLIT_CLIP, { clipId: clip.id, splitTime: clip.startTime + clip.duration / 2 })}>Split</button>
+        <button className="btn btn-danger" style={{ flex: 1, justifyContent: 'center', fontSize: 11 }} onClick={() => dispatch(ACTIONS.REMOVE_CLIP, [clip.id])}>Delete</button>
       </div>
     </div>
   );

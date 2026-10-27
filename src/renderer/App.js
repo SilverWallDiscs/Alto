@@ -123,10 +123,10 @@ function AppInner() {
 
 function PanelTabs({ activePanel, dispatch }) {
   const tabs = [
-    { id: 'media', label: '📁 Media' },
-    { id: 'effects', label: '✨ Effects' },
-    { id: 'transitions', label: '🔀 Transitions' },
-    { id: 'audio', label: '🎵 Audio' },
+    { id: 'media', label: 'Media' },
+    { id: 'effects', label: 'Effects' },
+    { id: 'transitions', label: 'Transitions' },
+    { id: 'audio', label: 'Audio' },
   ];
   return (
     <div style={{ display: 'flex', borderBottom: '1px solid var(--border)', background: 'var(--bg-surface)' }}>

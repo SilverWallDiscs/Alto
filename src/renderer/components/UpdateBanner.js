@@ -19,7 +19,7 @@ export default function UpdateBanner({ info, onDismiss }) {
       flexShrink: 0,
       animation: 'slide-in 0.3s ease',
     }}>
-      <span style={{ fontSize: 16 }}>🚀</span>
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--accent-bright)" strokeWidth="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
       <div style={{ flex: 1 }}>
         <span style={{ fontSize: 12, color: 'var(--text-primary)', fontWeight: 500 }}>
           Alto {info?.version} is ready to install
@@ -34,7 +34,7 @@ export default function UpdateBanner({ info, onDismiss }) {
         disabled={installing}
         style={{ fontSize: 11 }}
       >
-        {installing ? '⟳ Restarting…' : 'Install & Restart'}
+        {installing ? 'Restarting…' : 'Install & Restart'}
       </button>
       <button
         className="btn-icon"

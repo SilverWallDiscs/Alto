@@ -2,12 +2,12 @@ import React, { useState } from 'react';
 import { useStore, useDispatch, ACTIONS } from '../../store/store';
 
 const TOOLS = [
-  { id: 'select', label: 'Select (V)', icon: '↖', shortcut: 'v' },
-  { id: 'blade', label: 'Blade/Cut (B)', icon: '✂', shortcut: 'b' },
-  { id: 'hand', label: 'Hand/Pan (H)', icon: '✋', shortcut: 'h' },
-  { id: 'zoom', label: 'Zoom (Z)', icon: '🔍', shortcut: 'z' },
-  { id: 'trim', label: 'Trim (T)', icon: '◄►', shortcut: 't' },
-  { id: 'text', label: 'Text (W)', icon: 'T', shortcut: 'w' },
+  { id: 'select', label: 'Select (V)', icon: 'V', shortcut: 'v' },
+  { id: 'blade', label: 'Blade/Cut (B)', icon: 'B', shortcut: 'b' },
+  { id: 'hand', label: 'Hand/Pan (H)', icon: 'H', shortcut: 'h' },
+  { id: 'zoom', label: 'Zoom (Z)', icon: 'Z', shortcut: 'z' },
+  { id: 'trim', label: 'Trim (T)', icon: 'T', shortcut: 't' },
+  { id: 'text', label: 'Text (W)', icon: 'W', shortcut: 'w' },
 ];
 
 export default function Toolbar({ onExport, onImport }) {

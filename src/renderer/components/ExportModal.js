@@ -78,7 +78,7 @@ export default function ExportModal({ onClose }) {
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 6 }}>
                   {PRESETS.map(p => (
                     <button key={p.id} onClick={() => setPreset(p.id)} style={{ padding: '8px 6px', borderRadius: 'var(--radius-sm)', border: '1.5px solid ' + (preset === p.id ? 'var(--accent)' : 'var(--border)'), background: preset === p.id ? 'var(--accent-glow)' : 'var(--bg-elevated)', color: preset === p.id ? 'var(--accent-bright)' : 'var(--text-secondary)', cursor: 'pointer', fontSize: 11, fontFamily: 'var(--font)', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3, transition: 'all 0.12s' }}>
-                      <span style={{ fontSize: 18 }}>{p.icon}</span>
+                      <span style={{ fontSize: 9, fontWeight: 800, color: 'var(--accent-bright)', letterSpacing: 0.5 }}>{p.name.slice(0,3).toUpperCase()}</span>
                       <span>{p.name}</span>
                     </button>
                   ))}

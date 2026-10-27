@@ -165,7 +165,7 @@ function EffectCard({ item, canApply, onApply, compact }) {
       }}
       onClick={canApply ? onApply : undefined}
     >
-      <span style={{ fontSize: compact ? 22 : 16, flexShrink: 0 }}>{item.icon}</span>
+      <span style={{ fontSize: 9, fontWeight: 800, letterSpacing: 0.3, color: 'var(--accent-bright)', flexShrink: 0, minWidth: compact ? 22 : 18, textAlign: 'center' }}>{item.name.slice(0,2).toUpperCase()}</span>
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{ fontSize: 12, fontWeight: 500, color: 'var(--text-primary)' }}>{item.name}</div>
         {item.category && !compact && <div style={{ fontSize: 10, color: 'var(--text-muted)' }}>{item.category}</div>}
