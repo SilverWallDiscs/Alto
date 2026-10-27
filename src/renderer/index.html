@@ -6,7 +6,23 @@
   <meta http-equiv="Content-Security-Policy" content="default-src 'self' blob: data:; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; media-src 'self' blob: data: file:; img-src 'self' blob: data: file:;" />
   <title>Alto — Video Editor</title>
 </head>
-<body>
+<body style="background:#0f0f13;color:#fff;font-family:sans-serif;margin:0;">
+  <div id="loading" style="display:flex;align-items:center;justify-content:center;height:100vh;font-size:18px;letter-spacing:2px;opacity:0.5;">ALTO</div>
   <div id="root"></div>
+  <div id="error-display" style="display:none;padding:40px;background:#1a0010;color:#ff6b6b;font-size:13px;white-space:pre-wrap;position:fixed;top:0;left:0;right:0;bottom:0;overflow:auto;z-index:9999;"></div>
+  <script>
+    window.onerror = function(msg, src, line, col, err) {
+      document.getElementById('loading').style.display = 'none';
+      var d = document.getElementById('error-display');
+      d.style.display = 'block';
+      d.textContent = 'Alto failed to start\n\n' + msg + '\n\nFile: ' + src + ':' + line + '\n\n' + (err ? err.stack : '');
+    };
+    window.addEventListener('unhandledrejection', function(e) {
+      document.getElementById('loading').style.display = 'none';
+      var d = document.getElementById('error-display');
+      d.style.display = 'block';
+      d.textContent = 'Alto failed to start (unhandled promise)\n\n' + (e.reason ? e.reason.stack || e.reason : e);
+    });
+  </script>
 </body>
 </html>

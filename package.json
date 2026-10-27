@@ -1,6 +1,6 @@
 {
   "name": "alto",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "description": "Alto - Professional Video Editor",
   "main": "src/main/main.js",
   "scripts": {
