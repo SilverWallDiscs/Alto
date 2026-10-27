@@ -19,11 +19,10 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
-          cache: 'npm'
+          node-version: '24'
 
       - name: Install dependencies
-        run: npm ci
+        run: npm install
 
       - name: Build renderer
         run: npx webpack --config webpack.config.js --mode production
@@ -31,7 +30,8 @@ jobs:
       - name: Build installer
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: npx electron-builder build --win --publish always
+          CSC_IDENTITY_AUTO_DISCOVERY: false
+        run: npx electron-builder build --win nsis --publish always
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4

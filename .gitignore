@@ -2,6 +2,7 @@ node_modules/
 dist/
 build/
 .cache/
+.eb-cache/
 *.log
 *.vsix
 .env
