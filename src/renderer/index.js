@@ -15,27 +15,27 @@ class ErrorBoundary extends React.Component {
   }
   render() {
     if (this.state.error) {
-      return (
-        <div style={{
-          background: '#1a0010', color: '#ff6b6b', padding: 40,
+      const s = this.state.error.stack || String(this.state.error);
+      return React.createElement('div', {
+        style: {
+          background: '#0f0f13', color: '#ff6b6b', padding: 40,
           fontFamily: 'monospace', fontSize: 13, whiteSpace: 'pre-wrap',
-          position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, overflow: 'auto'
-        }}>
-          {'Alto failed to render\n\n' + this.state.error.stack}
-        </div>
-      );
+          position: 'fixed', inset: 0, overflow: 'auto'
+        }
+      }, 'Alto failed to render\n\n' + s);
     }
     return this.props.children;
   }
 }
 
-// Hide the loading indicator once React takes over
-const loadingEl = document.getElementById('loading');
-if (loadingEl) loadingEl.style.display = 'none';
-
 const root = createRoot(document.getElementById('root'));
 root.render(
-  <ErrorBoundary>
-    <App />
-  </ErrorBoundary>
+  React.createElement(ErrorBoundary, null,
+    React.createElement(App, null)
+  )
 );
+
+// Hide splash screen once React renders
+if (typeof window.__hideSplash === 'function') {
+  window.__hideSplash();
+}
