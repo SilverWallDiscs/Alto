@@ -1,6 +1,6 @@
 {
   "name": "alto",
-  "version": "1.0.0",
+  "version": "1.0.3",
   "description": "Alto - Professional Video Editor",
   "main": "src/main/main.js",
   "scripts": {
@@ -12,7 +12,10 @@
     "pack": "electron-builder --dir",
     "dist": "npm run build"
   },
-  "keywords": ["video-editor", "electron"],
+  "keywords": [
+    "video-editor",
+    "electron"
+  ],
   "author": "SilverWallDiscs",
   "license": "MIT",
   "dependencies": {
@@ -49,6 +52,7 @@
       "output": "dist",
       "buildResources": "assets"
     },
+    "asar": false,
     "files": [
       "src/main/**/*",
       "build/**/*",
@@ -60,7 +64,9 @@
       "target": [
         {
           "target": "nsis",
-          "arch": ["x64"]
+          "arch": [
+            "x64"
+          ]
         }
       ],
       "icon": "assets/icon.ico"
@@ -77,5 +83,8 @@
       "owner": "SilverWallDiscs",
       "repo": "Alto"
     }
+  },
+  "allowScripts": {
+    "electron@28.3.3": true
   }
 }

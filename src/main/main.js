@@ -34,7 +34,13 @@ function createWindow() {
     mainWindow.loadURL('http://localhost:3000');
     mainWindow.webContents.openDevTools();
   } else {
-    mainWindow.loadFile(path.join(__dirname, '../../build/index.html'));
+    // app.getAppPath() reliably returns the app root regardless of asar packaging
+    const indexPath = path.join(app.getAppPath(), 'build', 'index.html');
+    mainWindow.loadFile(indexPath).catch(err => {
+      log.error('Failed to load index.html:', indexPath, err);
+      // Show a fallback error page so the window is never just black
+      mainWindow.loadURL(`data:text/html,<body style="background:#0f0f13;color:#fff;font-family:sans-serif;padding:40px"><h2>Alto failed to load</h2><p>${err.message}</p><p>Path: ${indexPath}</p></body>`);
+    });
   }
 
   mainWindow.once('ready-to-show', () => {
