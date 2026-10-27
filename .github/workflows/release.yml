@@ -27,13 +27,46 @@ jobs:
       - name: Build renderer
         run: npx webpack --config webpack.config.js --mode production
 
-      - name: Build installer
+      - name: Build installer (no publish, just build the .exe)
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           CSC_IDENTITY_AUTO_DISCOVERY: false
-        run: npx electron-builder build --win nsis --publish always
+        run: npx electron-builder build --win nsis --publish never
 
-      - name: Upload artifacts
+      - name: List dist output
+        run: dir dist
+
+      - name: Create GitHub Release and upload installer
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.ref_name }}
+          name: "Alto ${{ github.ref_name }}"
+          body: |
+            ## Alto ${{ github.ref_name }}
+
+            ### Installation
+            1. Download `Alto-Setup-*.exe` below
+            2. Run the installer
+            3. Alto will auto-update from this page for future releases
+
+            ### What's included
+            - Multi-track video/audio/image timeline
+            - 22 video effects (blur, color grade, chroma key, speed, etc.)
+            - 24 transitions (dissolve, wipes, zoom, glitch, film burn, etc.)
+            - 10 audio effects (EQ, reverb, delay, compressor, etc.)
+            - Color correction panel
+            - Export presets (YouTube 1080p/4K, Instagram, TikTok, Twitter, Custom)
+            - Auto-update via GitHub Releases
+            - Full keyboard shortcuts, 50-level undo/redo
+          draft: false
+          prerelease: false
+          files: |
+            dist/*.exe
+            dist/*.exe.blockmap
+            dist/latest.yml
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Upload artifact (backup)
         uses: actions/upload-artifact@v4
         with:
           name: Alto-installer
